@@ -24,7 +24,9 @@ bsd-appmm   bash脚本, 判断apache24 mysql55-server postgresql92-server安装�
 默认没开启php加载, 需手动修改/usr/local/etc/apache24/httpd.conf最下面
 
 \#Include etc/apache24/extra/php-5.3.conf
+
 \#Include etc/apache24/extra/php-5.4.conf
+
 \#Include etc/apache24/extra/php-5.5.conf
 
 使用哪个版本加载哪个conf即可
