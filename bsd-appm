@@ -1,0 +1,135 @@
+#!/usr/local/bin/bash
+ubin=/usr/local/bin
+uports=/usr/ports
+#ins=/usr/local
+base_dir=$(pwd)
+httpd_conf=/usr/local/etc/apache24/httpd.conf
+conf_dir=/usr/local/etc/apache24/extra
+php53="php-"$(echo $(grep -n "^PORTVERSION=" $uports/lang/php53/Makefile | awk -F "=" '{print $NF}'))
+php54="php-"$(echo $(grep -n "^PORTVERSION=" $uports/lang/php5/Makefile | awk -F "=" '{print $NF}'))
+php55="php-"$(echo $(grep -n "^PORTVERSION=" $uports/lang/php55/Makefile | awk -F "=" '{print $NF}'))
+#php53="php-5.3.27"
+#php54="php-5.4.17"
+#php55="php-5.5.1"
+url="http://ftp.sjtu.edu.cn/pub/FreeBSD/distfiles/"
+
+	
+if [ ! -f /usr/local/etc/rc.d/postgresql ];then
+	printf "\033[40;32;2mPostgreSQL9.2不存在,从databases/postgresql92-server安装\033[0m\n"
+	cd $uports/databases/postgresql92-server
+	make install clean
+fi
+if [ ! -f /usr/local/etc/rc.d/mysql-server ];then
+	printf "\033[40;32;2mMysql5.5不存在,从databases/mysql55-server安装\033[0m\n"
+	cd $uports/databases/mysql55-server
+	make install clean
+fi		
+
+if [ ! -f /usr/local/etc/rc.d/apache24 ];then
+	printf "\033[40;32;2mApache2.4不存在,从www/apache24安装\033[0m\n"
+	cd $uports/www/apache24
+	make install clean
+	sed -i '' -e 's/^#\(LoadModule rewrite_module libexec\/apache24\/mod_rewrite.so\)/\1/g' $httpd_conf
+	sed -i '' -e 's/^\(ServerAdmin\) you@example.com/\1 postmaster@localhost/g' $httpd_conf
+	sed -i '' -e 's/^#\(ServerName\) www.example.com:80/\1 localhost:80/g' $httpd_conf
+	sed -i '' -e 's/\(DirectoryIndex index.html\)$/\1 index.php index.py index.pl index.cgi/g' $httpd_conf
+	sed -i '' -e 's/^#\(Include etc\/apache24\/extra\/httpd-mpm.conf\)/\1/g' $httpd_conf
+	sed -i '' -e 's/^#\(Include etc\/apache24\/extra\/httpd-default.conf\)/\1/g' $httpd_conf
+	sed -i '' -e 's/\(Options Indexes FollowSymLinks\)/\1 Includes ExecCGI/g' $httpd_conf
+	echo "" >> $httpd_conf
+	echo "AddType application/x-httpd-php .php" >> $httpd_conf
+	echo "AddType application/x-httpd-php-source .phps" >> $httpd_conf
+	echo "AddType application/x-httpd-php .phtml" >> $httpd_conf
+	echo "" >> $httpd_conf
+fi
+
+
+printf "\033[40;35;2m 检测PHP依赖环境 ...\033[0m\n"
+req_lib=( "libcurl" "libgd" "libmcrypt" "libtidy" "libgmp" "libiodbc" "libpspell" "libenchant" "libc-client4" )
+req_dir=( "/usr/ports/ftp/curl" "/usr/ports/graphics/gd" "/usr/ports/security/libmcrypt" "/usr/ports/www/tidy-lib" "/usr/ports/math/gmp" "/usr/ports/databases/libiodbc" "/usr/ports/textproc/aspell" "/usr/ports/textproc/enchant" "/usr/ports/mail/cclient")
+j=${#req_lib[@]}
+for((i=0;i<j;i++))
+	do
+		if
+			grep -d skip "${req_lib[$i]}.so" /usr/local/lib/* >/dev/null
+        then
+		    printf "\033[40;36;2m${req_lib[$i]}已经存在...\033[0m\n"
+		else
+			printf "\033[40;36;2m${req_lib[$i]} 不存在,从${req_dir[$i]}安装...\033[0m\n"
+			cd ${req_dir[$i]}
+			make install clean
+		fi
+	done
+
+#if [ ! -f /usr/local/lib/libc-client4.so ];then
+#	cd /usr/ports/mail/cclient
+#	make install clean
+#	printf "\033[40;36;2mCclient2007f安装成功...\033[0m\n"
+#fi
+
+
+
+ins_dir=('php-5.3' 'php-5.4' 'php-5.5')
+
+for i in ${ins_dir[@]}
+	do
+		if [ $i = 'php-5.3' ];then
+			php=$php53
+			config="--prefix=/usr/local/$i --with-apxs2=/usr/local/sbin/apxs --with-config-file-path=/usr/local/$i --with-config-file-scan-dir=/usr/local/$i/etc --with-libxml-dir --with-openssl --with-zlib --enable-bcmath --with-bz2 --enable-calendar --with-curl --enable-dom --enable-exif --enable-fileinfo --enable-filter --with-pcre-dir --enable-ftp --with-gd --with-jpeg-dir --with-png-dir --with-zlib-dir --with-xpm-dir --with-freetype-dir --enable-gd-native-ttf --with-gettext --with-gmp --enable-hash --with-mhash --with-imap --with-imap-ssl --with-iconv --enable-json --enable-mbstring --with-mcrypt --with-mysql=mysqlnd --with-mysqli=mysqlnd --with-mysql-sock --with-iodbc --with-pdo-odbc=iODBC --with-pdo-mysql=mysqlnd --with-pdo-pgsql --without-pdo-sqlite --with-pgsql --with-pspell --enable-shmop --enable-soap --enable-sockets --enable-sqlite-utf8 --with-tidy --enable-tokenizer --enable-wddx --enable-xmlreader --with-xmlrpc --with-xsl --enable-zip --with-pear --with-enchant --enable-json --enable-maintainer-zts"
+		fi
+		
+		if [ $i = 'php-5.4' ];then
+			php=$php54
+			config="--prefix=/usr/local/$i --with-apxs2=/usr/local/sbin/apxs --with-config-file-path=/usr/local/$i --with-config-file-scan-dir=/usr/local/$i/etc --with-libxml-dir --with-openssl --with-zlib --enable-bcmath --with-bz2 --enable-calendar --with-curl --enable-dom --enable-exif --enable-fileinfo --enable-filter --with-pcre-dir --enable-ftp --with-gd --with-jpeg-dir --with-png-dir --with-zlib-dir --with-xpm-dir --with-freetype-dir --enable-gd-native-ttf --with-gettext --with-gmp --enable-hash --with-mhash --with-imap --with-imap-ssl --with-iconv --with-icu-dir --enable-json --enable-mbstring --with-mcrypt --with-mysql=mysqlnd --with-mysqli=mysqlnd --with-mysql-sock --with-iodbc --with-pdo-odbc=iODBC --with-pdo-mysql=mysqlnd --with-pdo-pgsql --without-pdo-sqlite --with-pgsql --with-pspell --enable-shmop --enable-soap --enable-sockets --enable-sqlite-utf8 --with-tidy --enable-tokenizer --enable-wddx --enable-xmlreader --with-xmlrpc --with-xsl --enable-zip --with-pear --with-enchant --enable-maintainer-zts"	
+		fi
+		
+		if [ $i = 'php-5.5' ];then
+			php=$php55
+			config="--prefix=/usr/local/$i --with-apxs2=/usr/local/sbin/apxs --with-config-file-path=/usr/local/$i --with-config-file-scan-dir=/usr/local/$i/etc --with-libxml-dir --with-openssl --with-zlib --with-zlib-dir --enable-bcmath --with-bz2 --enable-calendar --enable-ctype --with-curl --enable-dom --with-enchant --enable-exif --enable-fileinfo --enable-filter --with-pcre-dir --enable-ftp --with-openssl-dir --with-gd --with-vpx-dir --with-jpeg-dir --with-png-dir --with-zlib-dir --with-xpm-dir --with-freetype-dir --enable-gd-native-ttf --with-gettext --with-gmp --with-mhash --enable-hash --with-iconv --with-imap --with-imap-ssl --enable-json --enable-mbstring --with-mcrypt --with-mysql=mysqlnd --with-mysql-sock --with-zlib-dir --with-mysqli=mysqlnd --with-iodbc --enable-opcache --enable-pdo --with-pdo-mysql=mysqlnd --with-pdo-odbc=iODBC --with-pdo-pgsql --with-pdo-sqlite --with-pgsql --with-pspell --enable-session --enable-shmop --enable-simplexml --enable-soap --enable-sockets --with-tidy --enable-tokenizer --enable-wddx --enable-xml --enable-xmlreader --with-xmlrpc --with-iconv-dir --with-xsl --enable-zip --enable-mysqlnd --with-pear --enable-maintainer-zts"	
+		fi
+		
+		ini=/usr/local/$i/php.ini
+		conf=$conf_dir/$i.conf
+		if [ ! -f /usr/local/$i/bin/php ];then
+			cd $base_dir
+			printf "\033[40;35;2m开始编译安装$i\033[0m\n"
+			if [ ! -f $php.tar.bz2 ];then
+				printf "\033[40;35;2m$php.tar.bz2不存在,从镜像下载...\033[0m\n"
+				wget -c -t 3 $url$php.tar.bz2
+			fi
+			if [ -d $php ];then
+				printf "\033[40;36;2m文件夹$php存在,删除并重新编译...\033[0m\n"
+				rm -r $php
+			fi
+			tar -xzvf $php.tar.bz2
+			cd $php
+			./configure $config
+			make
+			make install
+			printf "\033[40;36;2m编译安装完成,开始进行安装后配置...\033[0m\n"
+			mv /usr/local/libexec/apache24/libphp5.so /usr/local/libexec/apache24/lib$i.so
+			cp /usr/local/libexec/apache24/lib$i.so /usr/local/$i/lib$i.so
+			cp php.ini-production $ini
+			printf "\033[40;36;2m修改PHP.ini配置参数...\033[0m\n"
+			sed -i '' -e 's/^\(display_errors\) = Off$/\1 = On/g' $ini
+			sed -i '' -e 's/^;\(date\.timezone\) =\s*$/\1 = "Asia\/Shanghai"/g' $ini
+			sed -i '' -e 's/^\(memory_limit\) = .*$/\1 = 256M/g' $ini
+			sed -i '' -e 's/^\(post_max_size\) = .*$/\1 = 256M/g' $ini
+			sed -i '' -e 's/^\(upload_max_filesize\) = .*$/\1 = 1024M/g' $ini
+			sed -i '' -e 's/^\(max_execution_time\) = .*$/\1 = 18000/g' $ini
+			sed -i '' -e 's/^\(max_input_time\) = .*$/\1 = 7200/g' $ini
+			sed '/LoadModule php5_module        libexec\/apache24\/libphp5.so/'d $httpd_conf
+			#echo "" >> $httpd_conf
+			printf "\033[40;36;2m添加$i支持文件$conf...\033[0m\n"
+			echo "#Include etc/apache24/extra/$i.conf" >> $httpd_conf
+			echo "<IfModule env_module>" >> $conf
+			echo "    SetEnv MYSQL_HOME \"/usr/local/bin\"" >> $conf
+			echo "    SetEnv PHP_PEAR_SYSCONF_DIR \"/usr/local/$i/etc\"" >> $conf
+			echo "    #SetEnv PHPRC \"/usr/local/$i\"" >> $conf
+			echo "</IfModule>" >> $conf
+			echo "LoadModule php5_module        libexec/apache24/lib$i.so" >> $conf
+			echo "PHPINIDir /usr/local/$i" >> $conf
+			printf "\033[40;36;2mPHP$i安装完成...\033[0m\n"
+		fi			
+
+    done 

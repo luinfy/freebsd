@@ -1,0 +1,137 @@
+#!/bin/sh
+# -*- coding:utf-8 -*-
+ubin=/usr/local/bin
+uports=/usr/ports
+perlurl="http://ftp.sjtu.edu.cn/pub/FreeBSD/distfiles/perl/perl-5.16.3.tar.bz2"
+fonturl="http://192.168.29.1/info/"
+
+printf "\033[40;35;2m开始检测系统环境...\033[0m\n"
+
+if [ ! -d $uports ];then
+	printf "\033[40;32;2m$uports不存在,开始下载完整ports...\033[0m\n"
+	portsnap fetch extract
+else
+	printf "\033[40;32;2m开始更新ports...\033[0m\n"
+	portsnap fetch update
+fi
+
+if
+	grep -n "MASTER_SITE_BACKUP" /etc/make.conf >/dev/null
+then
+	printf "\033[40;36;2mPorts下载镜像已存在...\033[0m\n"
+else
+	echo "#PORTS MIRRORS" >> /etc/make.conf	
+	echo "MASTER_SITE_BACKUP?=http://192.168.29.1/distfiles/\${DIST_SUBDIR}/\\" >> /etc/make.conf
+	echo "http://mirror.bjtu.edu.cn/freebsd/distfiles/\${DIST_SUBDIR}/\\" >> /etc/make.conf
+	echo "http://ftp.sjtu.edu.cn/pub/FreeBSD/distfiles/\${DIST_SUBDIR}/" >> /etc/make.conf
+	echo "MASTER_SITE_OVERRIDE?=\${MASTER_SITE_BACKUP}" >> /etc/make.conf
+	printf "\033[40;32;2mPorts本地下载镜像已添加到/etc/make.conf...\033[0m\n"
+fi
+
+
+if
+	grep -n "WITH_OPTIONS=YES" /etc/make.conf >/dev/null
+then
+	printf "\033[40;32;2mPorts安装选项已存在于/etc/make.conf中...\033[0m\n"	
+else
+	echo "#INSTALL OPTIONS" >> /etc/make.conf
+	echo "WITH_OPTIONS=YES" >> /etc/make.conf
+	echo "editors_vim_SET+=EXUBERANT_CTAGS LUA NLS PERL PYTHON" >> /etc/make.conf
+	echo "editors_vim_SET+=XTERM_SAVE" >> /etc/make.conf
+	echo "editors_vim_UNSET+=CSCOPE ATHENA GNOME MOTIF RUBY TCL GTK2 X11" >> /etc/make.conf
+	echo "www_apache24_SET+=SUEXEC MPM_WORKER MPM_SHARED" >> /etc/make.conf
+	echo "www_apache24_UNSET+=MPM_PREFORK" >> /etc/make.conf
+	echo "databases_mysql55-server_SET+=FASTMTX" >> /etc/make.conf
+	echo "databases_mysql55-client_SET+=FASTMTX" >> /etc/make.conf
+	echo "graphics_gd_SET+=VPX XPM ICONV" >> /etc/make.conf
+	echo "mail_cclient_SET+=SSL_AND_PLAINTEXT" >> /etc/make.conf
+	echo "graphics_dri_UNSET+=I810 I915 I965 MACH64 MGA R128 R200 R300 R600 RADEON SAVAGE SIS TDFX UNICHROME" >> /etc/make.conf
+	echo "graphics_dri_SET+=SWRAST" >> /etc/make.conf
+	echo "devel_git_SET+=SVN" >> /etc/make.conf
+	echo "www_w3m_SET+=INLINE_IMAGE M17N" >> /etc/make.conf
+	echo "BATCH=yes" >> /etc/make.conf
+	printf "\033[40;36;2mPorts安装选项已添加到/etc/make.conf中...\033[0m\n"
+fi	
+
+if [ ! -f $ubin/perl ]; then
+	printf "\033[40;32;2mPerl不存在,开始从lang/perl5.16安装Perl5.16...\033[0m\n"
+	cd $uports/lang/perl5.16
+	make install clean
+fi
+
+if [ ! -f $ubin/wget ];then
+	printf "\033[40;32;2m下载工具wget不存在,开始从ftp/wget安装...\033[0m\n"
+	cd $uports/ftp/wget
+	make install clean
+else
+	printf "\033[40;36;2m下载工具wget已存在...\033[0m\n"	
+fi
+
+if
+	grep -n "FETCH_CMD" /etc/make.conf >/dev/null
+then
+	printf "\033[40;32;2m/etc/make.conf中已存在使用wget下载选项...\033[0m\n"
+else
+	echo "FETCH_CMD=wget -c -t 1" >> /etc/make.conf	
+	echo "DISABLE_SIZE=yes" >> /etc/make.conf
+	printf "\033[40;36;2m使用wget下载ports已添加到/etc/make.conf...\033[0m\n"
+fi
+
+if [ ! -f $ubin/python2.7 ];then
+	printf "\033[40;32;2mPython2.7不存在,开始从lang/python27安装...\033[0m\n"
+	cd $uports/lang/python27
+	make install clean
+else
+	printf "\033[40;36;2mPython2.7已存在...\033[0m\n"	
+fi
+
+if [ ! -f $ubin/bash ];then
+	printf "\033[40;32;2mShell Bash不存在,开始从shells/bash安装...\033[0m\n"
+	cd $uports/shells/bash
+	make install clean
+else
+	printf "\033[40;36;2mShell Bash已存在...\033[0m\n"
+fi	
+	
+
+if [ ! -f $ubin/vim ];then
+	printf "\033[40;32;2mVim不存在,开始从editors/vim安装...\033[0m\n"
+	cd $uports/editors/vim
+	make install clean
+else
+	printf "\033[40;36;2mVim已存在...\033[0m\n"	
+fi
+if [ ! -f $HOME/.vimrc ];then
+	printf "\033[40;32;2mVim配置文件不存在,新建文件$HOME/.vimrc ...\033[0m\n"
+	echo "set nocompatible" >> $HOME/.vimrc
+	echo "set autoindent" >> $HOME/.vimrc
+	echo "set showmatch" >> $HOME/.vimrc	
+	echo "set smartindent" >> $HOME/.vimrc
+	echo "filetype on" >> $HOME/.vimrc
+	echo "syntax enable" >> $HOME/.vimrc
+	echo "syntax on" >> $HOME/.vimrc
+	echo "set nu!" >> $HOME/.vimrc
+	echo "set tabstop=4" >> $HOME/.vimrc
+	echo "set shiftwidth=4" >> $HOME/.vimrc
+fi	
+
+#if [ ! -f $ubin/Xorg ];then
+#	printf "\033[40;32;2mXorg-minimal不存在,开始从x11/xorg-minimal安装...\033[0m\n"
+#	cd $uports/x11/xorg-minimal
+#	make install clean
+#else
+#	printf "\033[40;36;2mXorg-minimal已存在...\033[0m\n"
+#fi
+
+#if [ ! -f $ubin/wkhtmltoimage ];then
+#	printf "\033[40;32;2mWkhtmltoPDF不存在,开始从converters/wkhtmltopdf安装...\033[0m\n"
+#	cd $uports/converters/wkhtmltopdf
+#	make install clean
+#else
+#	printf "\033[40;32;2mWkhtmltoPDF Wkhtmltoimage已存在...\033[0m\n"	
+#fi
+
+printf "\033[40;35;2m初始化环境检测完毕....\033[0m\n"
+printf "\033[40;35;2m可以用bash脚本开始安装LAMP....\033[0m\n"
+
+

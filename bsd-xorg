@@ -1,0 +1,60 @@
+#!/bin/sh
+# -*- coding:utf-8 -*-
+ubin=/usr/local/bin
+uports=/usr/ports
+perlurl="http://ftp.sjtu.edu.cn/pub/FreeBSD/distfiles/perl/perl-5.16.3.tar.bz2"
+fonturl="http://192.168.29.1/info/"
+
+printf "\033[40;35;2m开始检测系统X环境以及东亚字体支持...\033[0m\n"
+
+if [ ! -f $ubin/Xorg ];then
+	printf "\033[40;32;2mXorg-minimal不存在,开始从x11/xorg-minimal安装...\033[0m\n"
+	cd $uports/x11/xorg-minimal
+	make install clean
+else
+	printf "\033[40;36;2mXorg-minimal已存在...\033[0m\n"
+fi
+
+if [ ! -f $uports/distfiles/msttf/simsun.ttc ];then
+	printf "\033[40;32;2m中文微软字体不存在,开始从chinese/msttf安装...\033[0m\n"
+	if [ ! -d $uports/distfiles/msttf ];then
+		mkdir $uports/distfiles/msttf
+	fi	
+	cd $uports/distfiles/msttf
+	wget $fonturl"msttf.zip"
+	tar -xzvf msttf.zip
+	rm msttf.zip
+	cd $uports/chinese/msttf
+	make install clean
+else
+	printf "\033[40;36;2m中文微软字体已存在...\033[0m\n"	
+fi
+
+if [ ! -f /usr/local/lib/X11/fonts/TrueType/gulim.ttc ];then
+	printf "\033[40;32;2m附加东亚字体(繁体中文:韩文=>Windows 8 字库提取)不存在,开始下载安装...\033[0m\n"
+	cd /usr/local/lib/X11/fonts/TrueType
+	wget $fonturl"chs-cht-ko-ttf.zip"
+	tar -xzvf chs-cht-ko-ttf.zip
+	rm 	chs-cht-ko-ttf.zip
+	wget $fonturl"mono-ttf.zip"
+	tar -xzvf mono-ttf.zip
+	rm mono-ttf.zip
+	fc-cache -rvf
+else
+	printf "\033[40;36;2m附加东亚字体(繁体中文:韩文=>Windows 8 字库提取)已存在...\033[0m\n"	
+fi	
+
+if [ ! -f $ubin/wkhtmltoimage ];then
+	printf "\033[40;32;2mWkhtmltoPDF不存在,开始从converters/wkhtmltopdf安装...\033[0m\n"
+	cd $uports/converters/wkhtmltopdf
+	make install clean
+else
+	printf "\033[40;36;2mWkhtmltoPDF Wkhtmltoimage已存在...\033[0m\n"	
+fi
+
+printf "\033[40;35;2m系统X环境检测完毕....\033[0m\n"
+printf "\033[40;35;2m已完美支持东亚字体显示....\033[0m\n"
+printf "\033[40;35;2m如需桌面环境,可安装x11/gnome2-lite或者Mate-Desktop....\033[0m\n"
+
+
+
